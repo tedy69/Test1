@@ -1,0 +1,481 @@
+<template>
+  <div id="app">
+    <p v-if="valData!==null">Clicked Data: {{valData}}</p>
+    <!-- <vg-pie-one :dtaArr='dta1' @emit-one="emitfromOne"/> -->
+    <vg-pie-one :dtaArr='dta1' @emit-one="startfilter" :filterArr="valData" />
+    <vg-pie-two :dtaArr='dta2' @emit-two="startfilter" :filterArr="valData"/>
+  </div>
+</template>
+
+<script>
+import VgPieOne from './components/VgPieOne.vue'
+import VgPieTwo from './components/VgPieTwo.vue'
+
+const dummyDta1 = 
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "description": "A bar chart with highlighting on hover and selecting on click. (Inspired by Tableau's interaction style.)",
+  "autosize": "pad",
+  "padding": 5,
+  "height": 200,
+  "style": "cell",
+  "data": [
+    {"name": "highlight_store"},
+    {"name": "select_store"},
+    {
+      "name": "source_0",
+      "values": [
+        {"a": "A", "b": 28},
+        {"a": "B", "b": 55},
+        {"a": "C", "b": 43},
+        {"a": "D", "b": 91},
+        {"a": "E", "b": 81},
+        {"a": "F", "b": 53},
+        {"a": "G", "b": 19},
+        {"a": "H", "b": 87},
+        {"a": "I", "b": 52}
+      ]
+    },
+    {
+      "name": "data_0",
+      "source": "source_0",
+      "transform": [
+        {"type": "identifier", "as": "_vgsid_"},
+        {
+          "type": "filter", 
+          "expr": "!isNaN(filterAmn) || inrange(datum.b, filterAmn)"
+        },
+        {
+          "type": "filter", 
+          "expr": "!isNaN(filterCat) || !indexof(datum.a, filterCat)"
+        }
+      ]
+    }
+  ],
+  "signals": [
+    {"name": "filterAmn", "value": []},
+    {"name": "filterCat", "value": ""},
+    {"name": "x_step", "value": 20},
+    {
+      "name": "width",
+      "update": "bandspace(domain('x').length, 0.2, 0.1) * x_step"
+    },
+    {
+      "name": "unit",
+      "value": {},
+      "on": [
+        {"events": "mousemove", "update": "isTuple(group()) ? group() : unit"}
+      ]
+    },
+    {"name": "highlight", "update": "vlSelectionResolve(\"highlight_store\")"},
+    {"name": "select", "update": "vlSelectionResolve(\"select_store\")"},
+    {
+      "name": "highlight_tuple",
+      "on": [
+        {
+          "events": [{"source": "scope", "type": "mouseover"}],
+          "update": "datum && item().mark.marktype !== 'group' ? {unit: \"\", fields: highlight_tuple_fields, values: [(item().isVoronoi ? datum.datum : datum)[\"_vgsid_\"]]} : null",
+          "force": true
+        },
+        {"events": [{"source": "scope", "type": "dblclick"}], "update": "null"}
+      ]
+    },
+    {
+      "name": "highlight_tuple_fields",
+      "value": [{"type": "E", "field": "_vgsid_"}]
+    },
+    {
+      "name": "highlight_modify",
+      "update": "modify(\"highlight_store\", highlight_tuple, true)"
+    },
+    {
+      "name": "select_tuple",
+      "on": [
+        {
+          "events": [{"source": "scope", "type": "click"}],
+          "update": "datum && item().mark.marktype !== 'group' ? {datum: datum, unit: \"\", fields: select_tuple_fields, values: [(item().isVoronoi ? datum.datum : datum)[\"_vgsid_\"]]} : null",
+          "force": true
+        },
+        {"events": [{"source": "scope", "type": "dblclick"}], "update": "null"}
+      ]
+    },
+    {
+      "name": "select_tuple_fields",
+      "value": [{"type": "E", "field": "_vgsid_"}]
+    },
+    {
+      "name": "select_toggle",
+      "value": false,
+      "on": [
+        {
+          "events": [{"source": "scope", "type": "click"}],
+          "update": "event.shiftKey"
+        },
+        {"events": [{"source": "scope", "type": "dblclick"}], "update": "false"}
+      ]
+    },
+    {
+      "name": "select_modify",
+      "update": "modify(\"select_store\", select_toggle ? null : select_tuple, select_toggle ? null : true, select_toggle ? select_tuple : null)"
+    }
+  ],
+  "marks": [
+    {
+      "name": "marks",
+      "type": "rect",
+      "style": ["bar"],
+      "from": {"data": "data_0"},
+      "encode": {
+        "update": {
+          "fill": {"value": "#4C78A8"},
+          "stroke": {"value": "black"},
+          "cursor": {"value": "pointer"},
+          "fillOpacity": [
+            {
+              "test": "!(length(data(\"select_store\"))) || (vlSelectionTest(\"select_store\", datum))",
+              "value": 1
+            },
+            {"value": 0.3}
+          ],
+          "strokeWidth": [
+            {
+              "test": "(!(length(data(\"select_store\"))) || (vlSelectionTest(\"select_store\", datum))) && (length(data(\"select_store\")))",
+              "value": 2
+            },
+            {
+              "test": "(vlSelectionTest(\"highlight_store\", datum))",
+              "value": 1
+            },
+            {"value": 0}
+          ],
+          "tooltip": {
+            "signal": "{\"a\": ''+datum[\"a\"], \"b\": format(datum[\"b\"], \"\")}"
+          },
+          "x": {"scale": "x", "field": "a"},
+          "width": {"scale": "x", "band": true},
+          "y": {"scale": "y", "field": "b"},
+          "y2": {"scale": "y", "value": 0}
+        },
+        "hover": {
+          "fill": {"value": "red"}
+        }
+      }
+    }
+  ],
+  "scales": [
+    {
+      "name": "x",
+      "type": "band",
+      "domain": {"data": "source_0", "field": "a", "sort": true},
+      "range": {"step": {"signal": "x_step"}},
+      "paddingInner": 0.2,
+      "paddingOuter": 0.1
+    },
+    {
+      "name": "y",
+      "type": "linear",
+      "domain": {"data": "source_0", "field": "b"},
+      "range": [{"signal": "height"}, 0],
+      "nice": true,
+      "zero": true
+    }
+  ],
+  "axes": [
+    {
+      "scale": "x",
+      "orient": "bottom",
+      "grid": false,
+      "labelAlign": "right",
+      "labelAngle": 270,
+      "labelBaseline": "middle",
+      "labelOverlap": true,
+      "zindex": 1
+    },
+    {
+      "scale": "y",
+      "orient": "left",
+      "grid": false,
+      "labelOverlap": true,
+      "tickCount": {"signal": "ceil(height/40)"},
+      "zindex": 1
+    },
+    {
+      "scale": "y",
+      "orient": "left",
+      "gridScale": "x",
+      "grid": true,
+      "tickCount": {"signal": "ceil(height/40)"},
+      "domain": false,
+      "labels": false,
+      "maxExtent": 0,
+      "minExtent": 0,
+      "ticks": false,
+      "zindex": 0
+    }
+  ]
+}
+const dummyDta2 = 
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "description": "A bar chart with highlighting on hover and selecting on click. (Inspired by Tableau's interaction style.)",
+  "autosize": "pad",
+  "padding": 5,
+  "height": 200,
+  "style": "cell",
+  "data": [
+    {"name": "highlight_store"},
+    {"name": "select_store"},
+    {
+      "name": "source_0",
+      "values": [
+        {"a": "A", "b": 28, "c": 12},
+        {"a": "A", "b": 28, "c": 13},
+        {"a": "B", "b": 55, "c": 22},
+        {"a": "B", "b": 55, "c": 23},
+        {"a": "C", "b": 43, "c": 32},
+        {"a": "C", "b": 43, "c": 33},
+        {"a": "D", "b": 91, "c": 42},
+        {"a": "D", "b": 91, "c": 43},
+        {"a": "E", "b": 81, "c": 52},
+        {"a": "E", "b": 81, "c": 53},
+        {"a": "F", "b": 53, "c": 62},
+        {"a": "F", "b": 53, "c": 63},
+        {"a": "G", "b": 19, "c": 72},
+        {"a": "G", "b": 19, "c": 73},
+        {"a": "H", "b": 87, "c": 82},
+        {"a": "H", "b": 87, "c": 83},
+        {"a": "I", "b": 52, "c": 92},
+        {"a": "I", "b": 52, "c": 93}
+      ]
+    },
+    {
+      "name": "data_0",
+      "source": "source_0",
+      "transform": [
+        {"type": "identifier", "as": "_vgsid_"},
+        {
+          "type": "filter", 
+          "expr": "!isNaN(filterAmn) || inrange(datum.b, filterAmn)"
+        },
+        {
+          "type": "filter", 
+          "expr": "!isNaN(filterVal) || inrange(datum.c, filterVal)"
+        },
+        {
+          "type": "filter", 
+          "expr": "!isNaN(filterCat) || !indexof(datum.a, filterCat)"
+        },
+      ]
+    }
+  ],
+  "signals": [
+    {"name": "filterVal", "value": []},
+    {"name": "filterAmn", "value": []},
+    {"name": "filterCat", "value": ""},
+    {"name": "x_step", "value": 20},
+    {
+      "name": "width",
+      "update": "bandspace(domain('x').length, 0.2, 0.1) * x_step"
+    },
+    {
+      "name": "unit",
+      "value": {},
+      "on": [
+        {"events": "mousemove", "update": "isTuple(group()) ? group() : unit"}
+      ]
+    },
+    {"name": "highlight", "update": "vlSelectionResolve(\"highlight_store\")"},
+    {"name": "select", "update": "vlSelectionResolve(\"select_store\")"},
+    {
+      "name": "highlight_tuple",
+      "on": [
+        {
+          "events": [{"source": "scope", "type": "mouseover"}],
+          "update": "datum && item().mark.marktype !== 'group' ? {unit: \"\", fields: highlight_tuple_fields, values: [(item().isVoronoi ? datum.datum : datum)[\"_vgsid_\"]]} : null",
+          "force": true
+        },
+        {"events": [{"source": "scope", "type": "dblclick"}], "update": "null"}
+      ]
+    },
+    {
+      "name": "highlight_tuple_fields",
+      "value": [{"type": "E", "field": "_vgsid_"}]
+    },
+    {
+      "name": "highlight_modify",
+      "update": "modify(\"highlight_store\", highlight_tuple, true)"
+    },
+    {
+      "name": "select_tuple",
+      "on": [
+        {
+          "events": [{"source": "scope", "type": "click"}],
+          "update": "datum && item().mark.marktype !== 'group' ? {datum: datum, unit: \"\", fields: select_tuple_fields, values: [(item().isVoronoi ? datum.datum : datum)[\"_vgsid_\"]]} : null",
+          "force": true
+        },
+        {"events": [{"source": "scope", "type": "dblclick"}], "update": "null"}
+      ]
+    },
+    {
+      "name": "select_tuple_fields",
+      "value": [{"type": "E", "field": "_vgsid_"}]
+    },
+    {
+      "name": "select_toggle",
+      "value": false,
+      "on": [
+        {
+          "events": [{"source": "scope", "type": "click"}],
+          "update": "event.shiftKey"
+        },
+        {"events": [{"source": "scope", "type": "dblclick"}], "update": "false"}
+      ]
+    },
+    {
+      "name": "select_modify",
+      "update": "modify(\"select_store\", select_toggle ? null : select_tuple, select_toggle ? null : true, select_toggle ? select_tuple : null)"
+    }
+  ],
+  "marks": [
+    {
+      "name": "marks",
+      "type": "rect",
+      "style": ["bar"],
+      "from": {"data": "data_0"},
+      "encode": {
+        "update": {
+          "fill": {"value": "#4C78A8"},
+          "stroke": {"value": "black"},
+          "cursor": {"value": "pointer"},
+          "fillOpacity": [
+            {
+              "test": "!(length(data(\"select_store\"))) || (vlSelectionTest(\"select_store\", datum))",
+              "value": 1
+            },
+            {"value": 0.3}
+          ],
+          "strokeWidth": [
+            {
+              "test": "(!(length(data(\"select_store\"))) || (vlSelectionTest(\"select_store\", datum))) && (length(data(\"select_store\")))",
+              "value": 2
+            },
+            {
+              "test": "(vlSelectionTest(\"highlight_store\", datum))",
+              "value": 1
+            },
+            {"value": 0}
+          ],
+          "tooltip": {
+            "signal": "{\"a\": ''+datum[\"a\"], \"b\": format(datum[\"b\"], \"\")}"
+          },
+          "x": {"scale": "x", "field": "a"},
+          "width": {"scale": "x", "band": true},
+          "y": {"scale": "y", "field": "c"},
+          "y2": {"scale": "y", "value": 0}
+        },
+        "hover": {
+          "fill": {"value": "red"}
+        }
+      }
+    }
+  ],
+  "scales": [
+    {
+      "name": "x",
+      "type": "band",
+      "domain": {"data": "source_0", "field": "a", "sort": false},
+      "range": {"step": {"signal": "x_step"}},
+      "paddingInner": 0.2,
+      "paddingOuter": 0.1
+    },
+    {
+      "name": "y",
+      "type": "linear",
+      "domain": {"data": "source_0", "field": "c"},
+      "range": [{"signal": "height"}, 0],
+      "nice": true,
+      "zero": true
+    }
+  ],
+  "axes": [
+    {
+      "scale": "x",
+      "orient": "bottom",
+      "grid": false,
+      "labelAlign": "right",
+      "labelAngle": 270,
+      "labelBaseline": "middle",
+      "labelOverlap": true,
+      "zindex": 1
+    },
+    {
+      "scale": "y",
+      "orient": "left",
+      "grid": false,
+      "labelOverlap": true,
+      "tickCount": {"signal": "ceil(height/40)"},
+      "zindex": 1
+    },
+    {
+      "scale": "y",
+      "orient": "left",
+      "gridScale": "x",
+      "grid": true,
+      "tickCount": {"signal": "ceil(height/40)"},
+      "domain": false,
+      "labels": false,
+      "maxExtent": 0,
+      "minExtent": 0,
+      "ticks": false,
+      "zindex": 0
+    }
+  ]
+}
+
+export default {
+  name: 'app',
+  components: {
+    VgPieOne,
+    VgPieTwo
+  },
+  data() {
+    return {
+      dta1: [],
+      dta2: [],
+      valData: null
+    }
+  },
+  mounted () {
+      // fetch('https://vega.github.io/vega/examples/bar-chart.vg.json')
+      // .then(res => res.json())
+      // .then(spec => this.sendDta(spec))
+      // .catch(err => console.error(err));
+      this.dta1 = dummyDta1
+      this.dta2 = dummyDta2
+  },
+  methods: {
+    startfilter: function(v){
+      console.log('ok', v)
+      this.valData = v
+    },
+    sendDta: function(target, spec) {
+      target = spec
+    },
+    emitfromOne: function(v){
+      this.valData = v
+
+    }
+  },
+}
+</script>
+
+<style>
+#app {
+  font-family: 'Avenir', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  color: #2c3e50;
+  margin-top: 60px;
+}
+</style>
