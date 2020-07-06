@@ -6,6 +6,7 @@
 </template>
 
 <script>
+ /* eslint-disable */
     import * as vega from 'vega'
 
     export default {
@@ -50,12 +51,13 @@
             handleevt: function(s, v){
                 if( v !== undefined){
                     this.isInternalFilter = !this.isInternalFilter
-                    let xx = JSON.parse(JSON.stringify(v))                    
+                    // let xx = JSON.parse(JSON.stringify(v))                    
                     if (v === null) { 
                         this.internalFilter = v;
                         this.$emit('emit-one', null);
                     } else {
                         this.internalFilter = v.datum.a;
+                        console.log(v.datum.a)
                         this.$emit('emit-one', v.datum.a);
                     }
                 }

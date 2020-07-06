@@ -463,7 +463,7 @@ export default {
     },
     emitfromOne: function(v){
       this.valData = v
-
+      console.log('emit', v)
     }
   },
 }
